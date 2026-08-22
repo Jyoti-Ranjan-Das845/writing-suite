@@ -12,6 +12,7 @@ Do not load every standard by default.
 | Technical design | Genre | Writing or reviewing a technical design document, HLD, LLD, architecture proposal, or engineering design | `standards/genres/technical-design.md` |
 | Decision memo | Genre | Writing or reviewing a decision memo, recommendation memo, proposal, or decision-oriented narrative | `standards/genres/decision-memo.md` |
 | Experiment report | Genre | Writing or reviewing an experiment, evaluation, benchmark, or empirical engineering report | `standards/genres/experiment-report.md` |
+| README | Genre | Writing or reviewing a README for a software repository or project | `standards/genres/readme.md` |
 | Email | Channel | Final artifact will be sent as email | `standards/channels/email.md` |
 | Slack | Channel | Final artifact will be sent through Slack or a similar workplace chat | `standards/channels/slack.md` |
 | LinkedIn | Channel | Final artifact is intended for LinkedIn | `standards/channels/linkedin.md` |
