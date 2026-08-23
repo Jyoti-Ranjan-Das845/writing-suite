@@ -11,28 +11,11 @@ This document traces how each phase in the original single-agent Writing Suite m
 
 ```mermaid
 flowchart LR
-    subgraph original[Original - single agent]
-        direction TB
-        P1[1. Requirements]
-        P2[2. Content Grounding]
-        P3[3. Authoring Contract]
-        P4[4. Writer]
-        P5[5. Reviewer]
-    end
-
-    subgraph multi[Draft Agent - multi-agent]
-        direction TB
-        ORCH[Orchestrator\n+requirements skill]
-        PLAN[Planner\nsub-agent]
-        WRIT[Writer\nsub-agent]
-        REVW[Reviewer\nsub-agent]
-    end
-
-    P1 -->|direct with user| ORCH
-    P2 -->|fused| PLAN
-    P3 -->|fused| PLAN
-    P4 --> WRIT
-    P5 --> REVW
+    P1[1. Requirements] -->|direct with user| ORCH[Orchestrator]
+    P2[2. Content Grounding] -->|fused| PLAN[Planner]
+    P3[3. Authoring Contract] -->|fused| PLAN
+    P4[4. Writer] --> WRIT[Writer]
+    P5[5. Reviewer] --> REVW[Reviewer]
 ```
 
 Five phases become four agents. Three phases (Grounding, Authority, and the new Planning concern) fuse into one.

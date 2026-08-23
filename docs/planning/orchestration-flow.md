@@ -11,13 +11,12 @@ This document describes the complete orchestration flow of the Draft Agent syste
 
 ```mermaid
 flowchart LR
-    subgraph pipeline[Draft Agent Pipeline]
-        R[Requirements\nskill] --> P[Planner\nsub-agent]
-        P --> W[Writer\nsub-agent]
-        W <--> V[Reviewer\nsub-agent]
-    end
-
-    U[User] <-->|orchestrator mediates| pipeline
+    U[User] -->|request| R[Requirements\nskill]
+    R --> P[Planner\nsub-agent]
+    P --> W[Writer\nsub-agent]
+    W --> V[Reviewer\nsub-agent]
+    V -->|revision| W
+    V -->|pass| D[Done]
 ```
 
 The pipeline has four stages. Each stage completes before the next begins. The orchestrator controls all transitions.
@@ -30,16 +29,15 @@ The pipeline has four stages. Each stage completes before the next begins. The o
 
 ```mermaid
 flowchart TD
-    U[User] <-->|conversation| O[Orchestrator]
+    U[User] -->|describes request| O[Orchestrator]
     O -->|load| SK[requirements skill]
     SK --> S1[1. Read user request]
     S1 --> S2[2. Extract requirements]
     S2 --> S3[3. Classify type]
     S3 --> S4[4. Record references]
-    S4 --> S5[5. Resolve genre/channel\nagainst standards-registry]
+    S4 --> S5[5. Resolve genre/channel]
     S5 --> S6[6. User confirms]
     S6 --> OUT[requirements.md]
-    S6 -->|unload| SK
 ```
 
 ### What happens
@@ -67,25 +65,15 @@ The user confirms the requirements table. All genre/channel references are resol
 
 ```mermaid
 flowchart TD
-    subgraph turn1[Turn 1]
-        O1[Orchestrator] -->|"sys_session_send\nrequirements + references"| P1[Planner]
-        P1 -->|"1. Read references\n2. Design schema\n3. Ground content\n4. Set authority\n5. Mark status"| P1
-        P1 -->|"sys_read_inbox\nschema v1"| O1
-    end
-
+    O1[Orchestrator] -->|reqs + refs| P1[Planner\nTurn 1]
+    P1 -->|schema v1| O1
     O1 --> RES{Unresolved\nparts?}
     RES -->|no| DONE[All Resolved\nwrite schema]
-    RES -->|yes| BATCH[Orchestrator batches\nall notes]
-
-    BATCH <-->|questions + answers| USER[User]
-
-    subgraph turn2[Turn 2+]
-        O2[Orchestrator] -->|"sys_session_send\nspecific answers"| P2[Planner]
-        P2 -->|"1. Read answers\n2. Update parts\n3. Record resolutions\n4. Re-check status"| P2
-        P2 -->|"sys_read_inbox\nschema v2"| O2
-    end
-
-    USER --> O2
+    RES -->|yes| BATCH[Batch all notes]
+    BATCH --> USER[User answers]
+    USER --> O2[Orchestrator]
+    O2 -->|answers| P2[Planner\nTurn 2+]
+    P2 -->|schema v2| O2
     O2 --> RES2{Unresolved\nparts?}
     RES2 -->|no| DONE
     RES2 -->|yes| BATCH
@@ -139,9 +127,8 @@ Every part in the schema has `<status>Resolved</status>`. The schema is written 
 
 ```mermaid
 flowchart LR
-    O[Orchestrator] -->|"sys_session_send\nrequirements + schema + standards"| W[Writer]
-    W -->|"1. Read requirements\n2. Read schema per part\n3. Apply standards\n4. Write prose"| W
-    W -->|"sys_read_inbox\ncompleted document"| O
+    O[Orchestrator] -->|reqs + schema + standards| W[Writer]
+    W -->|completed document| O
     O --> TGT[target-file]
 ```
 
@@ -169,15 +156,14 @@ The Writer returns a complete document.
 
 ```mermaid
 flowchart TD
-    O[Orchestrator] -->|"sys_session_send\ndocument + requirements + schema"| R[Reviewer]
-    R -->|"sys_read_inbox\nreview.md"| O
-
+    O[Orchestrator] -->|doc + reqs + schema| R[Reviewer]
+    R -->|review.md| O
     O --> V{Verdict?}
     V -->|Pass| DONE[Complete]
     V -->|Fail| ESC[Escalate to user]
-    V -->|Revise| WR[Resume Writer\nwith review.md]
+    V -->|Revise| WR[Resume Writer]
     WR --> W[Writer revises]
-    W --> RR[Resume Reviewer\nwith revised document]
+    W --> RR[Resume Reviewer]
     RR --> R
 ```
 

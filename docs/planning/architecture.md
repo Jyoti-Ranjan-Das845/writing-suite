@@ -13,46 +13,26 @@ Draft Agent is a **hub-and-spoke** multi-agent system built on Omnigent. One orc
 
 ```mermaid
 flowchart TD
-    U[User] <-->|direct interaction| O
+    U[User] --> O[Draft Agent\nOrchestrator]
+    O --> U
 
-    subgraph O[Draft Agent - Orchestrator]
-        direction TB
-        RM[Requirements management]
-        UI[User interaction]
-        PC[Pipeline control]
-        CR[Conflict resolution]
-    end
+    O -->|send| P[Planner]
+    P -->|reply| O
 
-    O -->|sys_session_send| P
-    P -->|sys_read_inbox| O
+    O -->|send| W[Writer]
+    W -->|reply| O
 
-    O -->|sys_session_send| W
-    W -->|sys_read_inbox| O
-
-    O -->|sys_session_send| R
-    R -->|sys_read_inbox| O
-
-    subgraph P[Planner - sub-agent]
-        direction TB
-        PS[Schema design]
-        PG[Content grounding]
-        PA[Authority assessment]
-    end
-
-    subgraph W[Writer - sub-agent]
-        direction TB
-        WP[Prose production]
-        WF[Format & structure]
-        WS[Standards application]
-    end
-
-    subgraph R[Reviewer - sub-agent]
-        direction TB
-        RE[Evaluate draft]
-        RC[Run checks]
-        RV[Produce verdict]
-    end
+    O -->|send| R[Reviewer]
+    R -->|reply| O
 ```
+
+**Orchestrator responsibilities:** requirements management, user interaction, pipeline control, conflict resolution.
+
+**Planner responsibilities:** schema design, content grounding, authority assessment.
+
+**Writer responsibilities:** prose production, formatting, standards application.
+
+**Reviewer responsibilities:** evaluate draft, run checks, produce verdict.
 
 ---
 
@@ -166,13 +146,14 @@ Requirements gathering is fundamentally a user conversation — extracting inten
 
 ```mermaid
 flowchart LR
-    U[User] <-->|direct| O[Orchestrator]
-    O -->|sys_session_send| P[Planner]
-    P -->|sys_read_inbox| O
-    O -->|sys_session_send| W[Writer]
-    W -->|sys_read_inbox| O
-    O -->|sys_session_send| R[Reviewer]
-    R -->|sys_read_inbox| O
+    U[User] --> O[Orchestrator]
+    O --> U
+    O -->|session_send| P[Planner]
+    P -->|read_inbox| O
+    O -->|session_send| W[Writer]
+    W -->|read_inbox| O
+    O -->|session_send| R[Reviewer]
+    R -->|read_inbox| O
 ```
 
 No sub-agent talks to another sub-agent. No sub-agent talks to the user. All coordination flows through the orchestrator.
@@ -196,23 +177,13 @@ No sub-agent talks to another sub-agent. No sub-agent talks to the user. All coo
 ## 5. Data artifacts
 
 ```mermaid
-flowchart TD
-    subgraph workspace[".draft/ workspace"]
-        REG[registry.md\nOrchestrator-owned]
-        subgraph artifact["&lt;artifact&gt;/"]
-            REQS[requirements.md\nOrchestrator-owned]
-            SCH[schema\nPlanner-produced]
-            REV[review.md\nReviewer-produced]
-        end
-    end
-    TGT[target-file\nWriter-produced]
-
-    O[Orchestrator] -->|writes| REG
-    O -->|writes| REQS
-    P[Planner] -->|produces| SCH
-    O -->|patches answers| SCH
-    W[Writer] -->|produces| TGT
-    R[Reviewer] -->|produces| REV
+flowchart LR
+    O[Orchestrator] -->|writes| REG[registry.md]
+    O -->|writes| REQS[requirements.md]
+    P[Planner] -->|produces| SCH[schema]
+    O -->|patches| SCH
+    W[Writer] -->|produces| TGT[target-file]
+    R[Reviewer] -->|produces| RV[review.md]
 ```
 
 ```text
