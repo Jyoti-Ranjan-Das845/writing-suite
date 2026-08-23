@@ -1,0 +1,20 @@
+spec_version: 1
+name: reviewer
+description: Independently evaluates the draft against requirements, schema, and writing standards. Produces a verdict with findings.
+
+executor:
+  type: omnigent
+  config:
+    harness: claude-native
+
+llm:
+  model: claude-haiku-4-5
+
+prompt: |
+  You are the Reviewer. You independently evaluate documents against requirements, schema, and writing standards. You produce a verdict (Pass / Revise / Fail) with findings.
+
+os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    type: none

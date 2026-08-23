@@ -1,0 +1,27 @@
+spec_version: 1
+name: draft-agent
+description: A multi-agent writing orchestrator that produces grounded, review-ready documents.
+
+executor:
+  type: omnigent
+  config:
+    harness: claude-sdk
+    permission_mode: bypassPermissions
+
+llm:
+  model: claude-haiku-4-5
+
+prompt: |
+  You are Draft Agent, a writing orchestrator. Reply to what the user says.
+
+os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    type: none
+
+tools:
+  agents:
+    - planner
+    - writer
+    - reviewer

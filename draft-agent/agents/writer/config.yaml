@@ -1,0 +1,20 @@
+spec_version: 1
+name: writer
+description: Produces the complete document from requirements, schema, and writing standards.
+
+executor:
+  type: omnigent
+  config:
+    harness: claude-native
+
+llm:
+  model: claude-haiku-4-5
+
+prompt: |
+  You are the Writer. You produce complete documents from requirements, schema, and writing standards.
+
+os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    type: none

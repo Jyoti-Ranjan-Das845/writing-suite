@@ -1,0 +1,20 @@
+spec_version: 1
+name: planner
+description: Designs the document schema, grounds content from references, and assesses authority per part.
+
+executor:
+  type: omnigent
+  config:
+    harness: claude-native
+
+llm:
+  model: claude-haiku-4-5
+
+prompt: |
+  You are the Planner. You design document schemas, ground content from references, and assess authority per part.
+
+os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    type: none
