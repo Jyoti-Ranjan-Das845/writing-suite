@@ -9,28 +9,30 @@ This document traces how each phase in the original single-agent Writing Suite m
 
 ## 1. The mapping at a glance
 
-```
-Original (single-agent)              Draft Agent (multi-agent)
-═══════════════════════              ═════════════════════════
+```mermaid
+flowchart LR
+    subgraph original[Original - single agent]
+        direction TB
+        P1[1. Requirements]
+        P2[2. Content Grounding]
+        P3[3. Authoring Contract]
+        P4[4. Writer]
+        P5[5. Reviewer]
+    end
 
-1. Requirements ──────────────────▶  Orchestrator (direct, with skill)
-                                     The orchestrator talks to the user,
-                                     extracts requirements, records them
-                                     in a typed table.
+    subgraph multi[Draft Agent - multi-agent]
+        direction TB
+        ORCH[Orchestrator\n+requirements skill]
+        PLAN[Planner\nsub-agent]
+        WRIT[Writer\nsub-agent]
+        REVW[Reviewer\nsub-agent]
+    end
 
-2. Content Grounding ─────┐
-                          ├───────▶  Planner (sub-agent)
-3. Authoring Contract ────┘          One agent reads references, designs
-                                     the document schema, grounds content,
-                                     and sets authority boundaries per part.
-
-4. Writer ────────────────────────▶  Writer (sub-agent)
-                                     Receives the resolved schema and
-                                     produces prose.
-
-5. Reviewer ──────────────────────▶  Reviewer (sub-agent)
-                                     Evaluates the draft against
-                                     requirements and schema.
+    P1 -->|direct with user| ORCH
+    P2 -->|fused| PLAN
+    P3 -->|fused| PLAN
+    P4 --> WRIT
+    P5 --> REVW
 ```
 
 Five phases become four agents. Three phases (Grounding, Authority, and the new Planning concern) fuse into one.

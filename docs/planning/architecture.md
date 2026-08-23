@@ -11,34 +11,47 @@ This document defines the overall multi-agent architecture for Draft Agent — t
 
 Draft Agent is a **hub-and-spoke** multi-agent system built on Omnigent. One orchestrator agent coordinates three sub-agents. The orchestrator is the only agent that talks to the user.
 
-```
-                    ┌─────────┐
-                    │  User   │
-                    └────┬────┘
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │   Draft Agent       │
-              │   (Orchestrator)    │
-              │                     │
-              │  - Requirements     │
-              │    management       │
-              │  - User interaction │
-              │  - Pipeline control │
-              │  - Conflict         │
-              │    resolution       │
-              └──┬──────┬───────┬──┘
-                 │      │       │
-        ┌────────┘      │       └────────┐
-        ▼               ▼                ▼
-  ┌───────────┐  ┌────────────┐  ┌────────────┐
-  │  Planner  │  │   Writer   │  │  Reviewer  │
-  │           │  │            │  │            │
-  │ - Schema  │  │ - Prose    │  │ - Evaluate │
-  │ - Ground  │  │ - Format   │  │ - Checks   │
-  │ - Authority│ │ - Standards│  │ - Verdict  │
-  └───────────┘  └────────────┘  └────────────┘
-   sub-agent       sub-agent       sub-agent
+```mermaid
+flowchart TD
+    U[User] <-->|direct interaction| O
+
+    subgraph O[Draft Agent - Orchestrator]
+        direction TB
+        RM[Requirements management]
+        UI[User interaction]
+        PC[Pipeline control]
+        CR[Conflict resolution]
+    end
+
+    O -->|sys_session_send| P
+    P -->|sys_read_inbox| O
+
+    O -->|sys_session_send| W
+    W -->|sys_read_inbox| O
+
+    O -->|sys_session_send| R
+    R -->|sys_read_inbox| O
+
+    subgraph P[Planner - sub-agent]
+        direction TB
+        PS[Schema design]
+        PG[Content grounding]
+        PA[Authority assessment]
+    end
+
+    subgraph W[Writer - sub-agent]
+        direction TB
+        WP[Prose production]
+        WF[Format & structure]
+        WS[Standards application]
+    end
+
+    subgraph R[Reviewer - sub-agent]
+        direction TB
+        RE[Evaluate draft]
+        RC[Run checks]
+        RV[Produce verdict]
+    end
 ```
 
 ---
@@ -151,17 +164,15 @@ Requirements gathering is fundamentally a user conversation — extracting inten
 
 ## 4. Communication model
 
-```
-Orchestrator ──sys_session_send──▶ Planner
-Orchestrator ◀──sys_read_inbox─── Planner
-
-Orchestrator ──sys_session_send──▶ Writer
-Orchestrator ◀──sys_read_inbox─── Writer
-
-Orchestrator ──sys_session_send──▶ Reviewer
-Orchestrator ◀──sys_read_inbox─── Reviewer
-
-User ◀──────────────────────────▶ Orchestrator (direct)
+```mermaid
+flowchart LR
+    U[User] <-->|direct| O[Orchestrator]
+    O -->|sys_session_send| P[Planner]
+    P -->|sys_read_inbox| O
+    O -->|sys_session_send| W[Writer]
+    W -->|sys_read_inbox| O
+    O -->|sys_session_send| R[Reviewer]
+    R -->|sys_read_inbox| O
 ```
 
 No sub-agent talks to another sub-agent. No sub-agent talks to the user. All coordination flows through the orchestrator.
@@ -184,28 +195,35 @@ No sub-agent talks to another sub-agent. No sub-agent talks to the user. All coo
 
 ## 5. Data artifacts
 
-```
-.draft/
-├── registry.md                  ← Project-level artifact index
-│                                   Owned by: Orchestrator
-│
-└── <artifact>/
-    ├── requirements.md          ← Recorded requirements
-    │                               Owned by: Orchestrator
-    │                               Format: ID | Requirement | Type | References
-    │
-    ├── schema                   ← Document schema (XML-tagged parts)
-    │                               Produced by: Planner
-    │                               Resolved by: Orchestrator (patches answers)
-    │                               Format: <part> elements with serves,
-    │                               specification, authority, status, notes
-    │
-    └── review.md                ← Reviewer evaluation
-                                    Produced by: Reviewer
-                                    Format: Verdict + findings table
+```mermaid
+flowchart TD
+    subgraph workspace[".draft/ workspace"]
+        REG[registry.md\nOrchestrator-owned]
+        subgraph artifact["&lt;artifact&gt;/"]
+            REQS[requirements.md\nOrchestrator-owned]
+            SCH[schema\nPlanner-produced]
+            REV[review.md\nReviewer-produced]
+        end
+    end
+    TGT[target-file\nWriter-produced]
 
-<target-file>                    ← The deliverable document
-                                    Produced by: Writer
+    O[Orchestrator] -->|writes| REG
+    O -->|writes| REQS
+    P[Planner] -->|produces| SCH
+    O -->|patches answers| SCH
+    W[Writer] -->|produces| TGT
+    R[Reviewer] -->|produces| REV
+```
+
+```text
+.draft/
+├── registry.md                  ← Project-level artifact index (Orchestrator-owned)
+└── <artifact>/
+    ├── requirements.md          ← Recorded requirements (Orchestrator-owned)
+    ├── schema                   ← Document schema with XML-tagged parts (Planner-produced)
+    └── review.md                ← Reviewer evaluation (Reviewer-produced)
+
+<target-file>                    ← The deliverable document (Writer-produced)
 ```
 
 ### Ownership rules

@@ -9,20 +9,15 @@ This document describes the complete orchestration flow of the Draft Agent syste
 
 ## 1. End-to-end pipeline
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        DRAFT AGENT PIPELINE                         │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────┐    ┌──────────┐ │
-│  │ Requirements │    │   Planner   │    │  Writer  │    │ Reviewer │ │
-│  │   (skill)    │───▶│ (sub-agent) │───▶│(sub-agt) │◀──▶│(sub-agt) │ │
-│  └──────┬──────┘    └──────┬──────┘    └─────────┘    └──────────┘ │
-│         │                  │                                        │
-│         │    ┌─────────────┘                                        │
-│         ▼    ▼                                                      │
-│     User interaction                                                │
-│     (orchestrator mediates)                                         │
-└──────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph pipeline[Draft Agent Pipeline]
+        R[Requirements\nskill] --> P[Planner\nsub-agent]
+        P --> W[Writer\nsub-agent]
+        W <--> V[Reviewer\nsub-agent]
+    end
+
+    U[User] <-->|orchestrator mediates| pipeline
 ```
 
 The pipeline has four stages. Each stage completes before the next begins. The orchestrator controls all transitions.
@@ -33,28 +28,18 @@ The pipeline has four stages. Each stage completes before the next begins. The o
 
 **Mode:** Orchestrator works directly with the user (no sub-agent).
 
-```
-┌────────────────────────────────────────────────┐
-│ STAGE 1: REQUIREMENTS                          │
-│                                                │
-│  Orchestrator                                  │
-│  ┌──────────────────────────────┐              │
-│  │ load skill:                  │              │
-│  │   skills/requirements/       │              │
-│  │                              │              │
-│  │ 1. Read user request         │   ┌──────┐   │
-│  │ 2. Extract requirements ◀────┼──▶│ User │   │
-│  │ 3. Classify type             │   └──────┘   │
-│  │ 4. Record references         │              │
-│  │ 5. Resolve genre/channel     │              │
-│  │    against standards-registry│              │
-│  │ 6. User confirms             │              │
-│  │                              │              │
-│  │ unload skill                 │              │
-│  └──────────────────────────────┘              │
-│                                                │
-│  Output: .draft/<artifact>/requirements.md     │
-└────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    U[User] <-->|conversation| O[Orchestrator]
+    O -->|load| SK[requirements skill]
+    SK --> S1[1. Read user request]
+    S1 --> S2[2. Extract requirements]
+    S2 --> S3[3. Classify type]
+    S3 --> S4[4. Record references]
+    S4 --> S5[5. Resolve genre/channel\nagainst standards-registry]
+    S5 --> S6[6. User confirms]
+    S6 --> OUT[requirements.md]
+    S6 -->|unload| SK
 ```
 
 ### What happens
@@ -80,56 +65,30 @@ The user confirms the requirements table. All genre/channel references are resol
 
 **Mode:** Orchestrator launches Planner sub-agent. Multi-turn via relay.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ STAGE 2: PLANNING (multi-turn)                                      │
-│                                                                     │
-│  Turn 1                                                             │
-│  ┌──────────────┐    sys_session_send    ┌─────────────────────┐   │
-│  │ Orchestrator  │ ─────────────────────▶ │      Planner        │   │
-│  │               │                        │                     │   │
-│  │ sends:        │                        │ 1. Read references  │   │
-│  │ - requirements│                        │ 2. Design schema    │   │
-│  │ - references  │                        │ 3. Ground content   │   │
-│  │               │    sys_read_inbox      │ 4. Set authority    │   │
-│  │               │ ◀───────────────────── │ 5. Mark status      │   │
-│  │               │                        │                     │   │
-│  │ receives:     │                        │ returns:            │   │
-│  │ schema v1     │                        │ schema with         │   │
-│  │               │                        │ Resolved/Unresolved │   │
-│  └──────┬───────┘                        └─────────────────────┘   │
-│         │                                                           │
-│         ▼                                                           │
-│  ┌──────────────┐                                                   │
-│  │ Orchestrator  │                                                   │
-│  │               │         ┌──────┐                                  │
-│  │ reads notes   │────────▶│ User │                                  │
-│  │ from all      │◀────────│      │                                  │
-│  │ Unresolved    │         └──────┘                                  │
-│  │ parts         │                                                   │
-│  │               │  batches all questions                            │
-│  │               │  into one conversation                            │
-│  └──────┬───────┘                                                   │
-│         │                                                           │
-│         ▼                                                           │
-│  Turn 2                                                             │
-│  ┌──────────────┐    sys_session_send    ┌─────────────────────┐   │
-│  │ Orchestrator  │ ─────────────────────▶ │      Planner        │   │
-│  │               │                        │                     │   │
-│  │ sends:        │                        │ 1. Read answers     │   │
-│  │ - answers to  │                        │ 2. Update parts     │   │
-│  │   unresolved  │    sys_read_inbox      │ 3. Record resolved  │   │
-│  │   items       │ ◀───────────────────── │    clarifications   │   │
-│  │               │                        │ 4. Re-check status  │   │
-│  │ receives:     │                        │                     │   │
-│  │ schema v2     │                        │ returns:            │   │
-│  │               │                        │ updated schema      │   │
-│  └──────────────┘                        └─────────────────────┘   │
-│                                                                     │
-│  Repeat until: all parts have <status>Resolved</status>             │
-│                                                                     │
-│  Output: .draft/<artifact>/schema                                   │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph turn1[Turn 1]
+        O1[Orchestrator] -->|"sys_session_send\nrequirements + references"| P1[Planner]
+        P1 -->|"1. Read references\n2. Design schema\n3. Ground content\n4. Set authority\n5. Mark status"| P1
+        P1 -->|"sys_read_inbox\nschema v1"| O1
+    end
+
+    O1 --> RES{Unresolved\nparts?}
+    RES -->|no| DONE[All Resolved\nwrite schema]
+    RES -->|yes| BATCH[Orchestrator batches\nall notes]
+
+    BATCH <-->|questions + answers| USER[User]
+
+    subgraph turn2[Turn 2+]
+        O2[Orchestrator] -->|"sys_session_send\nspecific answers"| P2[Planner]
+        P2 -->|"1. Read answers\n2. Update parts\n3. Record resolutions\n4. Re-check status"| P2
+        P2 -->|"sys_read_inbox\nschema v2"| O2
+    end
+
+    USER --> O2
+    O2 --> RES2{Unresolved\nparts?}
+    RES2 -->|no| DONE
+    RES2 -->|yes| BATCH
 ```
 
 ### Turn 1: Initial planning
@@ -178,25 +137,12 @@ Every part in the schema has `<status>Resolved</status>`. The schema is written 
 
 **Mode:** Orchestrator launches Writer sub-agent. Single turn (unless review requires revision).
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ STAGE 3: WRITING                                                    │
-│                                                                     │
-│  ┌──────────────┐    sys_session_send    ┌─────────────────────┐   │
-│  │ Orchestrator  │ ─────────────────────▶ │      Writer         │   │
-│  │               │                        │                     │   │
-│  │ sends:        │                        │ 1. Read requirements│   │
-│  │ - requirements│                        │ 2. Read schema      │   │
-│  │ - schema      │                        │    per part:        │   │
-│  │ - standards   │    sys_read_inbox      │    - specification  │   │
-│  │               │ ◀───────────────────── │    - authority      │   │
-│  │               │                        │ 3. Apply standards  │   │
-│  │ receives:     │                        │ 4. Write prose      │   │
-│  │ document      │                        │                     │   │
-│  └──────────────┘                        └─────────────────────┘   │
-│                                                                     │
-│  Output: <target-file>                                              │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    O[Orchestrator] -->|"sys_session_send\nrequirements + schema + standards"| W[Writer]
+    W -->|"1. Read requirements\n2. Read schema per part\n3. Apply standards\n4. Write prose"| W
+    W -->|"sys_read_inbox\ncompleted document"| O
+    O --> TGT[target-file]
 ```
 
 ### What happens
@@ -221,55 +167,33 @@ The Writer returns a complete document.
 
 **Mode:** Orchestrator launches Reviewer sub-agent. May trigger Writer-Reviewer loop.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ STAGE 4: REVIEW (with revision loop)                                │
-│                                                                     │
-│  ┌──────────────┐    sys_session_send    ┌─────────────────────┐   │
-│  │ Orchestrator  │ ─────────────────────▶ │     Reviewer        │   │
-│  │               │                        │                     │   │
-│  │ sends:        │                        │ 1. Read document    │   │
-│  │ - document    │                        │ 2. Read requirements│   │
-│  │ - requirements│    sys_read_inbox      │ 3. Read schema      │   │
-│  │ - schema      │ ◀───────────────────── │ 4. Run checks       │   │
-│  │               │                        │ 5. Produce verdict  │   │
-│  │ receives:     │                        │                     │   │
-│  │ review.md     │                        │                     │   │
-│  └──────┬───────┘                        └─────────────────────┘   │
-│         │                                                           │
-│         ▼                                                           │
-│  ┌──────────────┐                                                   │
-│  │ Orchestrator  │                                                   │
-│  │               │                                                   │
-│  │ if Pass ──────┼──▶ DONE                                          │
-│  │               │                                                   │
-│  │ if Revise ────┼──▶ Resume Writer with review.md                  │
-│  │               │    Writer revises document                       │
-│  │               │    Resume Reviewer with revised document         │
-│  │               │    (bounded to N cycles, e.g., 3)                │
-│  │               │                                                   │
-│  │ if Fail ──────┼──▶ Escalate to user                              │
-│  └──────────────┘                                                   │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    O[Orchestrator] -->|"sys_session_send\ndocument + requirements + schema"| R[Reviewer]
+    R -->|"sys_read_inbox\nreview.md"| O
+
+    O --> V{Verdict?}
+    V -->|Pass| DONE[Complete]
+    V -->|Fail| ESC[Escalate to user]
+    V -->|Revise| WR[Resume Writer\nwith review.md]
+    WR --> W[Writer revises]
+    W --> RR[Resume Reviewer\nwith revised document]
+    RR --> R
 ```
 
 ### Writer-Reviewer loop
 
+```mermaid
+flowchart LR
+    W1[Writer\ndraft] -->|cycle 1| R1[Reviewer]
+    R1 -->|Revise| W2[Writer\nrevised v2]
+    W2 -->|cycle 2| R2[Reviewer]
+    R2 -->|Revise| W3[Writer\nrevised v3]
+    W3 -->|cycle 3| R3[Reviewer]
+    R3 -->|Pass / Fail| END[Done or escalate]
 ```
-                    Cycle 1          Cycle 2          Cycle 3
-                   ─────────        ─────────        ─────────
-Writer ──draft──▶ Reviewer    Writer ──v2──▶ Reviewer    Writer ──v3──▶ Reviewer
-                   │                          │                          │
-                   ▼                          ▼                          ▼
-               review.md               review.md                   review.md
-               (Revise)                (Revise)                    (Pass/Fail)
-                   │                          │
-                   ▼                          ▼
-              Writer revises           Writer revises
 
-Maximum N cycles (e.g., 3). If the Reviewer still says Revise after N cycles,
-the orchestrator escalates to the user.
-```
+Maximum N cycles (e.g., 3). If the Reviewer still says Revise after N cycles, the orchestrator escalates to the user.
 
 ### What happens
 
@@ -289,55 +213,57 @@ Reviewer verdict is Pass, or the revision loop reaches the cycle limit and the u
 
 ## 6. Complete pipeline sequence diagram
 
-```
-User          Orchestrator          Planner          Writer          Reviewer
- │                 │                   │                │                │
- │──request───────▶│                   │                │                │
- │                 │                   │                │                │
- │                 │ [load requirements skill]          │                │
- │◀──questions─────│                   │                │                │
- │──answers───────▶│                   │                │                │
- │◀──confirm?──────│                   │                │                │
- │──confirmed─────▶│                   │                │                │
- │                 │ [unload skill]    │                │                │
- │                 │ [write requirements.md]            │                │
- │                 │                   │                │                │
- │                 │──reqs+refs───────▶│                │                │
- │                 │                   │──build schema  │                │
- │                 │                   │  ground content│                │
- │                 │                   │  set authority │                │
- │                 │◀──schema v1───────│                │                │
- │                 │                   │                │                │
- │                 │ [read unresolved notes]            │                │
- │◀──questions─────│                   │                │                │
- │──answers───────▶│                   │                │                │
- │                 │                   │                │                │
- │                 │──answers─────────▶│                │                │
- │                 │                   │──update parts  │                │
- │                 │◀──schema v2───────│                │                │
- │                 │                   │                │                │
- │                 │ [all Resolved — write schema]      │                │
- │                 │                   │                │                │
- │                 │ [load standards]  │                │                │
- │                 │──reqs+schema+stds────────────────▶│                │
- │                 │                   │                │──write prose   │
- │                 │◀──document────────────────────────│                │
- │                 │                   │                │                │
- │                 │──doc+reqs+schema──────────────────────────────────▶│
- │                 │                   │                │                │──evaluate
- │                 │◀──review.md───────────────────────────────────────│
- │                 │                   │                │                │
- │                 │ [if Revise]       │                │                │
- │                 │──review.md───────────────────────▶│                │
- │                 │                   │                │──revise        │
- │                 │◀──revised doc─────────────────────│                │
- │                 │──revised doc──────────────────────────────────────▶│
- │                 │                   │                │                │──re-evaluate
- │                 │◀──review.md───────────────────────────────────────│
- │                 │                   │                │                │
- │                 │ [if Pass]         │                │                │
- │◀──done──────────│                   │                │                │
- │                 │                   │                │                │
+```mermaid
+sequenceDiagram
+    actor User
+    participant O as Orchestrator
+    participant P as Planner
+    participant W as Writer
+    participant R as Reviewer
+
+    User->>O: Writing request
+
+    Note over O: Load requirements skill
+    O->>User: Clarification questions
+    User->>O: Answers
+    O->>User: Confirm requirements?
+    User->>O: Confirmed
+    Note over O: Write requirements.md
+
+    O->>P: requirements + references
+    Note over P: Build schema, ground content, set authority
+    P->>O: schema v1 (with unresolved)
+
+    Note over O: Read unresolved notes
+    O->>User: Batched questions
+    User->>O: Answers
+
+    O->>P: Specific answers
+    Note over P: Update parts, record resolutions
+    P->>O: schema v2 (all Resolved)
+    Note over O: Write schema
+
+    Note over O: Load standards
+    O->>W: requirements + schema + standards
+    Note over W: Write prose
+    W->>O: Completed document
+
+    O->>R: document + requirements + schema
+    Note over R: Evaluate
+    R->>O: review.md
+
+    alt Verdict = Revise
+        O->>W: review.md
+        Note over W: Revise
+        W->>O: Revised document
+        O->>R: Revised document
+        Note over R: Re-evaluate
+        R->>O: review.md
+    end
+
+    alt Verdict = Pass
+        O->>User: Done
+    end
 ```
 
 ---
@@ -386,13 +312,20 @@ The orchestrator owns `.draft/registry.md`, which tracks all artifacts in the pr
 | q2-blog  | blog/q2-revenue.md | Writing | — |
 ```
 
-The orchestrator updates the Stage column as the pipeline progresses:
-- `Requirements` → requirements.md written
-- `Planning` → schema in progress / resolved
-- `Writing` → Writer producing document
-- `Review` → Reviewer evaluating
-- `Complete` → Review passed
-- `Blocked` → Pipeline halted (user intervention needed)
+```mermaid
+stateDiagram-v2
+    [*] --> Requirements
+    Requirements --> Planning : requirements.md written
+    Planning --> Writing : schema resolved
+    Writing --> Review : document produced
+    Review --> Complete : Pass
+    Review --> Writing : Revise
+    Review --> Blocked : Fail / cycle limit
+    Blocked --> Requirements : user restarts
+    Complete --> [*]
+```
+
+The orchestrator updates the Stage column as the pipeline progresses through these states.
 
 ---
 

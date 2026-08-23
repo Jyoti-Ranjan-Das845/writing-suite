@@ -11,43 +11,17 @@ This document studies the existing single-agent Writing Suite phases (in `backup
 
 The Writing Suite runs as **one agent** switching between five sequential phases using skill files. The orchestration logic lives in `backup/SKILL.md`.
 
-```
-User Request
-    │
-    ▼
-┌─────────────────────┐
-│  1. Requirements     │  backup/skills/writing-requirements/SKILL.md
-│     Extract what     │  Output: .writing/<artifact>/requirements.md
-│     the user wants   │
-└────────┬────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│  2. Content          │  backup/skills/content-grounding/SKILL.md
-│     Grounding        │  Output: .writing/<artifact>/grounding.md
-│     Find the facts   │
-└────────┬────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│  3. Authoring        │  backup/skills/authoring-contract/SKILL.md
-│     Contract         │  Output: .writing/<artifact>/authority.md
-│     Permission gate  │
-└────────┬────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│  4. Writer           │  backup/skills/writer/SKILL.md
-│     Draft the        │  Output: <target-file>
-│     document         │
-└────────┬────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│  5. Reviewer         │  backup/skills/reviewer/SKILL.md
-│     Evaluate the     │  Output: .writing/<artifact>/review.md
-│     draft            │
-└────────┴─── loop back to Writer if revisions needed
+```mermaid
+flowchart TD
+    U[User Request] --> R[1. Writing Requirements]
+    R -->|requirements.md| G[2. Content Grounding]
+    G -->|grounding.md| A[3. Authoring Contract]
+    A -->|authority.md| W[4. Writer]
+    W -->|target file| V[5. Reviewer]
+    V -->|Needs revision| W
+    V -->|Pass| D[Final deliverable]
+    V -->|Blocked| B[Resolve blocker]
+    B --> R
 ```
 
 ---
@@ -164,23 +138,19 @@ User Request
 
 ## 3. State files and data flow
 
-```
-                    ┌──────────────┐
-                    │ requirements │
-                    │     .md      │
-                    └──────┬───────┘
-                           │ read by
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-        ┌──────────┐ ┌──────────┐ ┌──────────┐
-        │ grounding│ │ authority│ │  Writer   │
-        │   .md    │ │   .md    │ │          │
-        └────┬─────┘ └────┬─────┘ └──────────┘
-             │            │            ▲
-             └────────────┘            │
-                   │                   │
-                   └── all three ──────┘
-                       feed Writer
+```mermaid
+flowchart TD
+    REQ[requirements.md] --> GR[grounding.md]
+    REQ --> AUTH[authority.md]
+    REQ --> WR[Writer]
+    GR --> AUTH
+    GR --> WR
+    AUTH --> WR
+    STD[standards] --> WR
+    REQ --> REV[Reviewer]
+    GR --> REV
+    AUTH --> REV
+    WR -->|draft| REV
 ```
 
 Each phase reads from the previous phase's output:
