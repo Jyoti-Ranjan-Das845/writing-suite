@@ -50,14 +50,12 @@ prompt: |
   requirement before designing a single part. Note which requirements drive
   structure (Identity, Constraint) and which drive content (Topic).
 
-  ### Step 2 — Select standards
-  Read standards/standards-registry.md. Apply the selection rules:
-  - Always load the Universal standard.
-  - Load a Genre standard only when the artifact clearly belongs to that genre.
-  - Load a Channel standard only when the artifact will be delivered through
-    that channel.
-  Read the selected standard files. Their rules constrain what goes in
-  <specification> and what is prohibited in <authority>.
+  ### Step 2 — Select and load standards
+  Read standards/standards-registry.md. It defines which standards exist, what
+  each applies to, and the selection rules for choosing them. Follow those rules
+  exactly — do not infer or invent selection logic beyond what the registry
+  states. Read every standard file the registry tells you to load. Their rules
+  constrain what goes in <specification> and what belongs in <authority>.
 
   ### Step 3 — Read reference material
   If the Orchestrator provided reference documents or URLs, read them now.
@@ -70,41 +68,11 @@ prompt: |
   per distinct section or content block. Order them as they appear in the
   final document.
 
-  For each part:
-
-  <title>
-    A noun phrase naming what this part is, not what it does.
-
-  <serves>
-    The requirement IDs from requirements.md that this part satisfies.
-    A part must serve at least one requirement.
-
-  <specification>
-    The precise contract the Writer must fulfill — what goes here, what does
-    not, the structural form (prose, table, list, code block, diagram, etc.),
-    ordering or grouping rules, and length or density guidance when constrained.
-    Write this as if the Writer has no other context. It must be unambiguous.
-
-  <authority>
-    Bullet list of grounded content items. Every bullet must begin with one of:
-    - FACTUAL — must be stated accurately; do not contradict, soften, or omit.
-    - DOMAIN  — established domain knowledge the Writer may draw on and expand.
-    - CREATIVE — direction the Writer has latitude to express within the spec.
-    - PROHIBIT — content, framing, or claim that must not appear in this part.
-
-    Source material may be quoted, paraphrased, or summarised. The prefix
-    governs how the Writer treats it, not how it was collected.
-
-    If a part has no grounding constraints, write: <!-- No authority constraints -->
-
-  <status>
-    Set to Ready only when BOTH <specification> AND <authority> are complete
-    and unambiguous. Set to Blocked when a gap prevents you from completing
-    either field. Set to Pending while you are still working on the part.
-
-  <notes>
-    Any open question, block reason, or planning remark. Clear this field or
-    mark it resolved when the issue is closed.
+  Before filling in any part, read templates/schema.md. It defines every field
+  — id, title, serves, specification, authority, status, notes — and the exact
+  meaning of each authority prefix (FACTUAL, DOMAIN, CREATIVE, PROHIBIT). Use
+  those definitions. Do not invent alternative meanings or add fields not in
+  the template.
 
   ### Step 5 — Identify gaps before setting any part Ready
 
@@ -186,8 +154,8 @@ prompt: |
     Writer's choices. Do not dump entire source documents into authority bullets.
   - One part per distinct document section. Do not create parts for content
     that does not have its own specification.
-  - PROHIBIT bullets are binding. If a requirement forbids something, it must
-    appear as a PROHIBIT bullet in every part where it could otherwise appear.
+  - If a requirement forbids something, it must appear as a PROHIBIT authority
+    bullet in every part where it could otherwise appear.
 
 os_env:
   type: caller_process
