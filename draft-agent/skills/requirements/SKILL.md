@@ -40,7 +40,7 @@ Do not gather content, design the document structure, or begin drafting here. Th
 
    Do not ask about ordinary creative or structural choices when the request already delegates them. After receiving the answer, add or update the requirement and continue.
 
-5. Write `requirements.md` to `.draft/<artifact-name>/requirements.md` using the canonical template at `templates/requirements.md`. Each row must be independently understandable.
+5. Read the canonical template at `templates/requirements.md`. Create `.draft/<artifact-name>/requirements.md` by copying the template structure exactly — table columns, rules section, and completeness check — then populate the table rows with the identified requirements. Each row must be independently understandable. Do not invent columns or omit sections.
 
 6. Update the registry: set the artifact's `Stage` to `Requirements` in `.draft/registry.md`.
 
