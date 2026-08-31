@@ -1,2 +1,11 @@
-backup/
-runs/
+*
+
+!.gitignore
+!README.md
+!docs/
+!docs/**
+!draft-agent/
+!draft-agent/**
+
+draft-agent/**/__pycache__/
+draft-agent/**/*.py[cod]
